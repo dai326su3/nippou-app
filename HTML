@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>生産日報</title>
+<style>
+  :root{
+    --ink:#1c2321;
+    --paper:#f7f5f0;
+    --line:#d8d3c7;
+    --accent:#8a5a2b;
+    --accent-soft:#f0e4d3;
+    --ok:#3f6b4a;
+    --mono: 'SFMono-Regular', Consolas, monospace;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--paper); color:var(--ink);
+    font-family:-apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif;
+    line-height:1.6;
+  }
+  .wrap{ max-width:520px; margin:0 auto; padding:0 0 40px; }
+  header{
+    padding:26px 20px 18px; border-bottom:2px solid var(--ink);
+    position:sticky; top:0; background:var(--paper); z-index:10;
+  }
+  .eyebrow{
+    font-family:var(--mono); font-size:11px; letter-spacing:0.12em;
+    color:var(--accent); text-transform:uppercase; margin-bottom:6px;
+  }
+  h1{ margin:0; font-size:25px; font-weight:700; letter-spacing:-0.01em; }
+  .date-line{ margin-top:4px; font-size:13px; color:#6b6459; }
+
+  form{ padding:22px 20px 0; }
+  .field{ margin-bottom:20px; }
+  .field > label{
+    display:flex; align-items:baseline; justify-content:space-between;
+    font-size:14px; font-weight:600; margin-bottom:8px;
+  }
+  .field > label .tag{
+    font-family:var(--mono); font-size:10px; font-weight:500;
+    color:#9a9184; letter-spacing:0.05em;
+  }
+  input[type=text], input[type=date], select, textarea{
+    width:100%; border:1px solid var(--line); border-radius:6px;
+    background:#fff; padding:12px 13px; font-size:16px; color:var(--ink);
+    font-family:inherit; resize:vertical;
+  }
+  select{ appearance:none; -webkit-appearance:none;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='%231c2321'><path d='M2 4l5 6 5-6z'/></svg>");
+    background-repeat:no-repeat; background-position:right 14px center;
+  }
+  input:focus, select:focus, textarea:focus{
+    outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft);
+  }
+  textarea{ min-height:64px; }
+
+  /* --- 体感スコア --- */
+  .score-panel{
+    background:#fff; border:1px solid var(--line); border-radius:10px;
+    padding:16px 16px 6px; margin-bottom:22px;
+  }
+  .score-panel-title{
+    font-size:13px; font-weight:700; margin-bottom:2px;
+  }
+  .score-panel-sub{
+    font-size:11.5px; color:#8f8779; margin-bottom:14px;
+  }
+  .score-row{ margin-bottom:14px; }
+  .score-row-label{ font-size:13px; font-weight:600; margin-bottom:8px; }
+  .score-scale{ display:flex; gap:6px; }
+  .score-scale button{
+    flex:1; padding:10px 0; border-radius:6px; border:1px solid var(--line);
+    background:#fbfaf7; font-size:14px; font-family:var(--mono); font-weight:700;
+    color:#9a9184; cursor:pointer;
+  }
+  .score-scale button.active{ background:var(--accent); border-color:var(--accent); color:#fff; }
+  .score-caption{
+    display:flex; justify-content:space-between; font-size:10.5px; color:#a49c8d; margin-top:4px;
+  }
+
+  /* --- category card --- */
+  .category{
+    border:1px solid var(--line); border-radius:10px; background:#fff;
+    margin-bottom:14px; padding:14px 14px 16px; transition:border-color .15s;
+  }
+  .category.has-content{ border-color:var(--accent); }
+  .cat-title{ font-size:14.5px; font-weight:700; display:flex; align-items:baseline; gap:6px; margin-bottom:12px; }
+  .cat-num{ font-family:var(--mono); font-size:11px; color:var(--accent); }
+
+  .chips{ display:flex; flex-wrap:wrap; gap:7px; margin-bottom:10px; }
+  .chip{
+    padding:7px 12px; border-radius:16px; border:1px solid var(--line);
+    background:#fbfaf7; font-size:12.5px; font-family:inherit; color:var(--ink); cursor:pointer;
+  }
+  .chip.active{ background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600; }
+
+  .cat-detail{ margin-top:4px; }
+  .cat-detail textarea{ min-height:60px; font-size:14px; }
+
+  .photo-input-wrap{ margin-top:10px; }
+  .photo-input-wrap label.sub{
+    font-size:11.5px; color:#8f8779; font-weight:600; display:block; margin-bottom:6px;
+  }
+  .photo-input-wrap input[type=file]{
+    width:100%; font-size:12.5px; padding:8px; border:1px dashed var(--line);
+    border-radius:6px; background:#fbfaf7;
+  }
+  .photo-preview{ display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
+  .photo-preview img{
+    width:56px; height:56px; object-fit:cover; border-radius:6px; border:1px solid var(--line);
+  }
+
+  .field.freeform textarea{ min-height:80px; }
+
+  .submit-bar{ padding:6px 20px 0; }
+  button.submit{
+    width:100%; padding:15px; border:none; border-radius:8px;
+    background:var(--ink); color:#fff; font-size:16px; font-weight:700;
+    font-family:inherit; cursor:pointer; letter-spacing:0.02em;
+  }
+  button.submit:active{ opacity:0.85; }
+  button.submit:disabled{ background:#9a9184; }
+
+  .status{ margin:14px 20px 0; padding:12px 14px; border-radius:6px; font-size:14px; display:none; }
+  .status.show{ display:block; }
+  .status.ok{ background:#e9f2ea; color:var(--ok); border:1px solid #bcd8c1; }
+  .status.err{ background:#f7e9e6; color:#a33d2d; border:1px solid #e0bcb2; }
+  .status.pending{ background:#f0ede4; color:#6b6459; border:1px solid var(--line); }
+
+  .encourage{
+    margin:12px 20px 0; padding:16px 16px; border-radius:10px;
+    background:var(--accent-soft); border:1px solid #e3c9a3;
+    color:#5c3e1f; font-size:14.5px; line-height:1.7;
+    display:none; opacity:0; transform:translateY(4px);
+    transition:opacity .35s ease, transform .35s ease;
+  }
+  .encourage.show{ display:block; }
+  .encourage.visible{ opacity:1; transform:translateY(0); }
+
+  .config-note{
+    margin:26px 20px 0; padding:12px 14px; background:#fff;
+    border:1px dashed var(--line); border-radius:6px; font-size:12px;
+    color:#8f8779; font-family:var(--mono); line-height:1.7; white-space:pre-wrap;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Production / Daily Report</div>
+    <h1>生産日報</h1>
+    <div class="date-line" id="todayLabel"></div>
+  </header>
+
+  <form id="reportForm">
+    <div class="field">
+      <label>報告日 <span class="tag">DATE</span></label>
+      <input type="date" id="reportDate" required>
+    </div>
+
+    <div class="field">
+      <label>報告者 <span class="tag">NAME</span></label>
+      <select id="reporter" required>
+        <option value="">選択してください</option>
+      </select>
+    </div>
+
+    <div class="score-panel">
+      <div class="score-panel-title">本日の体感</div>
+      <div class="score-panel-sub">該当する数字をタップしてください(1=悪い / 5=良い)</div>
+      <div id="scoreRoot"></div>
+    </div>
+
+    <div id="categoriesRoot"></div>
+
+    <div class="field freeform">
+      <label>⑤その他自由記入 <span class="tag">FREE</span></label>
+      <textarea id="freeText" placeholder="上記に当てはまらない連絡事項など"></textarea>
+    </div>
+
+    <div class="submit-bar">
+      <button type="submit" class="submit" id="submitBtn">日報を送信</button>
+    </div>
+  </form>
+
+  <div class="status" id="statusBox"></div>
+
+  <div class="encourage" id="encourageBox"></div>
+
+  <div class="config-note" id="configNote"></div>
+</div>
+
+<script>
+/* ============ 設定エリア:ここを実運用に合わせて書き換えてください ============ */
+
+// デプロイ後のGAS Web App URL
+const GAS_URL = "https://script.google.com/macros/s/AKfycbz3ppcUyUjKzM5snfyIa13_0TGtsYt3hiWuqnHo5KPkAGNFR9WNMlytmRAcIr7andYMxQ/exec";
+
+// 報告者プルダウンの選択肢(実際のメンバー名に書き換えてください)
+const REPORTERS = ["角", "上間", "上江洲", "玉那覇"];
+
+/* ============================================================================ */
+
+const SCORES = [
+  { key: "equipment",   label: "設備稼働" },
+  { key: "personnel",   label: "人員体制" },
+  { key: "workability", label: "作業のしやすさ" },
+  { key: "volume",      label: "生産物量" }
+];
+
+const CATEGORIES = [
+  { key: "equipment",  num: "①", title: "設備の気づき・共有事項",
+    tags: ["異音・振動", "チョコ停", "稼働停止", "部品摩耗", "調整が必要", "その他"],
+    placeholder: "具体的な状況があれば記入" },
+  { key: "foodSafety", num: "②", title: "食品安全の気づき・共有事項",
+    tags: ["異物混入の疑い", "温度逸脱", "期限表示ミス", "交差汚染の恐れ", "衛生管理", "その他"],
+    placeholder: "具体的な状況があれば記入" },
+  { key: "laborSafety",num: "③", title: "労働安全の気づき・共有事項",
+    tags: ["ヒヤリハット", "転倒・滑り", "挟まれ・巻き込み", "保護具未着用", "体調不良", "その他"],
+    placeholder: "具体的な状況があれば記入" },
+  { key: "employee",   num: "④", title: "従業員に関する気づき・共有事項",
+    tags: ["人手不足", "欠勤・遅刻", "教育が必要", "コミュニケーション", "モチベーション低下", "その他"],
+    placeholder: "具体的な状況があれば記入" }
+];
+
+// ---- 初期表示 ----
+const todayLabel = document.getElementById('todayLabel');
+const dateInput = document.getElementById('reportDate');
+const now = new Date();
+const yyyy = now.getFullYear();
+const mm = String(now.getMonth()+1).padStart(2,'0');
+const dd = String(now.getDate()).padStart(2,'0');
+dateInput.value = `${yyyy}-${mm}-${dd}`;
+const weekday = ['日','月','火','水','木','金','土'][now.getDay()];
+todayLabel.textContent = `${yyyy}年${mm}月${dd}日 (${weekday})`;
+
+const reporterSelect = document.getElementById('reporter');
+REPORTERS.forEach(name=>{
+  const opt = document.createElement('option');
+  opt.value = name; opt.textContent = name;
+  reporterSelect.appendChild(opt);
+});
+
+const configNote = document.getElementById('configNote');
+let notes = [];
+if (!GAS_URL || GAS_URL === "PASTE_YOUR_GAS_WEB_APP_URL_HERE") {
+  notes.push("⚠ GAS_URL が未設定です。設置手順に従って書き換えてください。");
+}
+notes.push("報告者リストは REPORTERS 配列を編集して実際のメンバー名にしてください。");
+configNote.textContent = notes.join("\n");
+
+// ---- 体感スコア ----
+const scoreState = {};
+const scoreRoot = document.getElementById('scoreRoot');
+SCORES.forEach(s=>{
+  scoreState[s.key] = null;
+  const row = document.createElement('div');
+  row.className = 'score-row';
+  row.innerHTML = `
+    <div class="score-row-label">${s.label}</div>
+    <div class="score-scale" data-key="${s.key}">
+      <button type="button" data-v="1">1</button>
+      <button type="button" data-v="2">2</button>
+      <button type="button" data-v="3">3</button>
+      <button type="button" data-v="4">4</button>
+      <button type="button" data-v="5">5</button>
+    </div>
+    <div class="score-caption"><span>悪い</span><span>良い</span></div>
+  `;
+  scoreRoot.appendChild(row);
+  row.querySelectorAll('.score-scale button').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      row.querySelectorAll('.score-scale button').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      scoreState[s.key] = btn.dataset.v;
+    });
+  });
+});
+
+// ---- カテゴリカード ----
+const root = document.getElementById('categoriesRoot');
+const state = {}; // key -> {tags:[], detail, files:[]}
+
+CATEGORIES.forEach(cat=>{
+  state[cat.key] = { tags: [], files: [] };
+
+  const card = document.createElement('div');
+  card.className = 'category';
+  card.id = 'cat-' + cat.key;
+
+  const chipsHtml = cat.tags.map(t=>`<button type="button" class="chip" data-tag="${t}">${t}</button>`).join('');
+
+  card.innerHTML = `
+    <div class="cat-title"><span class="cat-num">${cat.num}</span>${cat.title}</div>
+    <div class="chips" data-key="${cat.key}">${chipsHtml}</div>
+    <div class="cat-detail">
+      <textarea id="detail-${cat.key}" placeholder="${cat.placeholder}"></textarea>
+    </div>
+    <div class="photo-input-wrap">
+      <label class="sub">写真(任意・複数可)</label>
+      <input type="file" id="photo-${cat.key}" accept="image/*" capture="environment" multiple>
+      <div class="photo-preview" id="preview-${cat.key}"></div>
+    </div>
+  `;
+  root.appendChild(card);
+
+  function refreshHighlight(){
+    const hasTags = state[cat.key].tags.length > 0;
+    const hasText = document.getElementById('detail-' + cat.key).value.trim() !== '';
+    const hasFiles = state[cat.key].files.length > 0;
+    card.classList.toggle('has-content', hasTags || hasText || hasFiles);
+  }
+
+  card.querySelectorAll('.chip').forEach(chip=>{
+    chip.addEventListener('click', ()=>{
+      chip.classList.toggle('active');
+      const t = chip.dataset.tag;
+      if (chip.classList.contains('active')) {
+        state[cat.key].tags.push(t);
+      } else {
+        state[cat.key].tags = state[cat.key].tags.filter(x => x !== t);
+      }
+      refreshHighlight();
+    });
+  });
+
+  document.getElementById('detail-' + cat.key).addEventListener('input', refreshHighlight);
+
+  const fileInput = card.querySelector(`#photo-${cat.key}`);
+  const preview = card.querySelector(`#preview-${cat.key}`);
+  fileInput.addEventListener('change', ()=>{
+    state[cat.key].files = Array.from(fileInput.files || []);
+    preview.innerHTML = '';
+    state[cat.key].files.forEach(f=>{
+      const img = document.createElement('img');
+      img.src = URL.createObjectURL(f);
+      preview.appendChild(img);
+    });
+    refreshHighlight();
+  });
+});
+
+// ---- 画像を圧縮してBase64化 ----
+function compressImage(file, maxWidth=1280, quality=0.7){
+  return new Promise((resolve, reject)=>{
+    const reader = new FileReader();
+    reader.onload = (e)=>{
+      const img = new Image();
+      img.onload = ()=>{
+        let w = img.width, h = img.height;
+        if (w > maxWidth) { h = Math.round(h * (maxWidth / w)); w = maxWidth; }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        const dataUrl = canvas.toDataURL('image/jpeg', quality);
+        resolve({ mimeType: 'image/jpeg', base64: dataUrl.split(',')[1] });
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function buildCategoryPayload(key){
+  const s = state[key];
+  const detail = document.getElementById('detail-' + key).value;
+  const photos = await Promise.all(s.files.map(f => compressImage(f)));
+  return { tags: s.tags, detail, photos };
+}
+
+// ---- 送信後のねぎらいメッセージ ----
+const ENCOURAGE_MESSAGES = [
+  "今日も一日、現場を支えていただきありがとうございました。ゆっくり休んでください。",
+  "細かい気づきの積み重ねが、これからの安全と品質を守ります。お疲れさまでした。",
+  "判断と調整の連続だったと思います。今日一日、本当にお疲れさまでした。",
+  "現場を見て、聞いて、まとめる。当たり前のようで大変なことです。今日もありがとうございました。",
+  "今日の一件一件が、明日のトラブルを防ぐ材料になります。お疲れさまでした。",
+  "忙しい中での報告、ありがとうございます。無理せず、また明日お願いします。",
+  "小さな違和感を拾い上げてくれること自体が、大きな仕事です。お疲れさまでした。",
+  "現場と向き合った一日、ご苦労さまでした。今日はゆっくり休んでください。",
+  "見えにくいところまで気を配っていただき感謝します。今日もお疲れさまでした。",
+  "報告してくれてありがとう。おかげで現場の状況がちゃんと伝わっています。",
+  "今日も一日、チームをまとめていただきありがとうございました。",
+  "地道な積み重ねが、いちばん現場を強くします。今日もお疲れさまでした。",
+  "一日中気を張っていたと思います。今日もお疲れさまでした。",
+  "誰かがちゃんと見てくれている、それだけで現場は安心します。",
+  "今日の判断、きっと正しかったと思います。お疲れさまでした。",
+  "忙しい中、手を止めて報告してくれてありがとうございます。",
+  "現場と事務所をつなぐ大事な仕事、今日もありがとうございました。",
+  "小さなことでも拾い上げる姿勢、いつもありがとうございます。",
+  "今日一日、いろんな人の顔を見て回ったのではないでしょうか。お疲れさまでした。",
+  "誰も見ていないところでの気配り、ちゃんと伝わっています。",
+  "今日のひと踏ん張りが、明日を少し楽にしてくれます。",
+  "現場が回っているのは、こういう積み重ねのおかげです。",
+  "お疲れの出やすい時期です。無理せず、体も大事にしてください。",
+  "今日も一つ、現場の記録が積み上がりました。ありがとうございます。",
+  "報告を続けること自体が、実はすごいことです。",
+  "今日の一日、誰かの安全につながっていたかもしれません。",
+  "細やかな目配り、いつも助かっています。",
+  "今日も持ち場をしっかり見てくれて、ありがとうございました。",
+  "一日の終わりに、少しだけ肩の力を抜いてください。",
+  "淡々とした毎日の積み重ねが、実は一番の強さです。",
+  "今日の報告、きちんと届いています。お疲れさまでした。",
+  "誰かの「気づいてくれてありがとう」は、今日も生まれていたはずです。",
+  "忙しい一日でも、記録を残してくれる姿勢に感謝します。",
+  "今日も現場を任せていただき、ありがとうございました。",
+  "明日もまたよろしくお願いします。今日はゆっくり休んでください。",
+  "現場の温度感を伝えてくれること、本当に助かっています。",
+  "一日お疲れさまでした。今日という日を支えてくれてありがとう。",
+  "何気ない一言が、あとで大事な手がかりになることがあります。",
+  "今日も一つ、現場の安心を積み上げてくれました。",
+  "今日も無事に一日を終えられたのは、誰かがどこかで踏ん張ったからです(たぶんあなた)。",
+  "今日も生地は膨らみ、課長の胃は縮んだ一日でした。お疲れさまでした。",
+  "お疲れさまでした。ちなみにこのメッセージ、45分の1で表示されています。",
+  "今日の「気づき」、実は明日のあなたへの伝言でもあります。",
+  "課長、今日もお疲れさまでした。ジュースは奢りませんが拍手はします。",
+  "大当たり!スクショ送信で角次長がジュースをおごってくれるよ!"
+];
+
+const encourageBox = document.getElementById('encourageBox');
+function showEncourage(){
+  const msg = ENCOURAGE_MESSAGES[Math.floor(Math.random() * ENCOURAGE_MESSAGES.length)];
+  encourageBox.textContent = msg;
+  encourageBox.classList.add('show');
+  requestAnimationFrame(()=>{
+    requestAnimationFrame(()=> encourageBox.classList.add('visible'));
+  });
+}
+function hideEncourage(){
+  encourageBox.classList.remove('show', 'visible');
+}
+
+// ---- 送信 ----
+const form = document.getElementById('reportForm');
+const statusBox = document.getElementById('statusBox');
+const submitBtn = document.getElementById('submitBtn');
+
+function showStatus(type, msg){
+  statusBox.className = 'status show ' + type;
+  statusBox.textContent = msg;
+}
+
+function resetForm(){
+  form.reset();
+  dateInput.value = `${yyyy}-${mm}-${dd}`;
+  SCORES.forEach(s=>{
+    scoreState[s.key] = null;
+    document.querySelectorAll(`.score-scale[data-key="${s.key}"] button`).forEach(b=>b.classList.remove('active'));
+  });
+  CATEGORIES.forEach(cat=>{
+    state[cat.key] = { tags: [], files: [] };
+    const card = document.getElementById('cat-' + cat.key);
+    card.classList.remove('has-content');
+    card.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+    document.getElementById('preview-' + cat.key).innerHTML = '';
+  });
+}
+
+form.addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  hideEncourage();
+
+  if (!GAS_URL || GAS_URL === "PASTE_YOUR_GAS_WEB_APP_URL_HERE") {
+    showStatus('err', '送信先が未設定です。管理者にGAS URLの設定を依頼してください。');
+    return;
+  }
+  if (!reporterSelect.value) {
+    showStatus('err', '報告者を選択してください。');
+    return;
+  }
+  const missingScore = SCORES.find(s => !scoreState[s.key]);
+  if (missingScore) {
+    showStatus('err', `「本日の体感」の${missingScore.label}を選択してください。`);
+    return;
+  }
+
+  submitBtn.disabled = true;
+  submitBtn.textContent = '送信準備中...';
+  showStatus('pending', '写真を処理しています。しばらくお待ちください。');
+
+  try {
+    const categories = {};
+    for (const cat of CATEGORIES) {
+      categories[cat.key] = await buildCategoryPayload(cat.key);
+    }
+
+    const payload = {
+      date: dateInput.value,
+      reporter: reporterSelect.value,
+      scores: scoreState,
+      categories,
+      freeText: document.getElementById('freeText').value
+    };
+
+    submitBtn.textContent = '送信中...';
+    showStatus('pending', '送信しています。画面を閉じずにお待ちください。');
+
+    await fetch(GAS_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify(payload)
+    });
+
+    showStatus('ok', '日報を送信しました。お疲れさまでした。');
+    showEncourage();
+    resetForm();
+  } catch (err) {
+    showStatus('err', '送信に失敗しました。通信環境をご確認のうえ再度お試しください。');
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = '日報を送信';
+  }
+});
+</script>
+</body>
+</html>
