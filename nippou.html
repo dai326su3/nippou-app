@@ -130,14 +130,23 @@
   .status.pending{ background:#f0ede4; color:#6b6459; border:1px solid var(--line); }
 
   .encourage{
-    margin:12px 20px 0; padding:16px 16px; border-radius:10px;
-    background:var(--accent-soft); border:1px solid #e3c9a3;
-    color:#5c3e1f; font-size:14.5px; line-height:1.7;
-    display:none; opacity:0; transform:translateY(4px);
-    transition:opacity .35s ease, transform .35s ease;
+    margin:16px 20px 0; padding:20px 18px; border-radius:12px;
+    background:linear-gradient(135deg, #fff 0%, var(--accent-soft) 100%);
+    border:2px solid var(--accent);
+    box-shadow:0 4px 14px rgba(138,90,43,0.18);
+    display:none; opacity:0; transform:translateY(6px) scale(0.98);
+    transition:opacity .4s ease, transform .4s ease;
   }
   .encourage.show{ display:block; }
-  .encourage.visible{ opacity:1; transform:translateY(0); }
+  .encourage.visible{ opacity:1; transform:translateY(0) scale(1); }
+  .encourage-label{
+    display:flex; align-items:center; gap:6px;
+    font-family:var(--mono); font-size:11px; letter-spacing:0.1em;
+    color:var(--accent); text-transform:uppercase; font-weight:700; margin-bottom:8px;
+  }
+  .encourage-text{
+    font-size:17px; font-weight:700; line-height:1.7; color:#3d2a15;
+  }
 
   .config-note{
     margin:26px 20px 0; padding:12px 14px; background:#fff;
@@ -199,7 +208,7 @@
 const GAS_URL = "https://script.google.com/macros/s/AKfycbz3ppcUyUjKzM5snfyIa13_0TGtsYt3hiWuqnHo5KPkAGNFR9WNMlytmRAcIr7andYMxQ/exec";
 
 // 報告者プルダウンの選択肢(実際のメンバー名に書き換えてください)
-const REPORTERS = ["角", "上間", "上江洲", "玉那覇"];
+const REPORTERS = ["角次長", "上間課長", "上江洲課長", "玉那覇課長"];
 
 /* ============================================================================ */
 
@@ -424,7 +433,7 @@ const ENCOURAGE_MESSAGES = [
 const encourageBox = document.getElementById('encourageBox');
 function showEncourage(){
   const msg = ENCOURAGE_MESSAGES[Math.floor(Math.random() * ENCOURAGE_MESSAGES.length)];
-  encourageBox.textContent = msg;
+  encourageBox.innerHTML = `<div class="encourage-label">🎉 ひとこと</div><div class="encourage-text">${msg}</div>`;
   encourageBox.classList.add('show');
   requestAnimationFrame(()=>{
     requestAnimationFrame(()=> encourageBox.classList.add('visible'));
