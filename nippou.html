@@ -205,10 +205,10 @@
 /* ============ 設定エリア:ここを実運用に合わせて書き換えてください ============ */
 
 // デプロイ後のGAS Web App URL
-const GAS_URL = "https://script.google.com/macros/s/AKfycbz3ppcUyUjKzM5snfyIa13_0TGtsYt3hiWuqnHo5KPkAGNFR9WNMlytmRAcIr7andYMxQ/exec";
+const GAS_URL = "PASTE_YOUR_GAS_WEB_APP_URL_HERE";
 
 // 報告者プルダウンの選択肢(実際のメンバー名に書き換えてください)
-const REPORTERS = ["角次長", "上間課長", "上江洲課長", "玉那覇課長"];
+const REPORTERS = ["山田", "佐藤", "鈴木", "高橋"];
 
 /* ============================================================================ */
 
@@ -309,7 +309,7 @@ CATEGORIES.forEach(cat=>{
     </div>
     <div class="photo-input-wrap">
       <label class="sub">写真(任意・複数可)</label>
-      <input type="file" id="photo-${cat.key}" accept="image/*" capture="environment" multiple>
+      <input type="file" id="photo-${cat.key}" accept="image/*" multiple>
       <div class="photo-preview" id="preview-${cat.key}"></div>
     </div>
   `;
