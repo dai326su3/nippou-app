@@ -189,7 +189,7 @@
     <div id="categoriesRoot"></div>
 
     <div class="field freeform">
-      <label>⑤その他自由記入 <span class="tag">FREE</span></label>
+      <label>⑥その他自由記入 <span class="tag">FREE</span></label>
       <textarea id="freeText" placeholder="上記に当てはまらない連絡事項など"></textarea>
     </div>
 
@@ -235,7 +235,10 @@ const CATEGORIES = [
     placeholder: "具体的な状況があれば記入" },
   { key: "employee",   num: "④", title: "従業員に関する気づき・共有事項",
     tags: ["人手不足", "欠勤・遅刻", "教育が必要", "コミュニケーション", "モチベーション低下", "その他"],
-    placeholder: "具体的な状況があれば記入" }
+    placeholder: "具体的な状況があれば記入" },
+  { key: "improvement",num: "⑤", title: "改善取り組み・共有事項",
+    tags: ["生産性", "品質", "ロス", "労働環境", "人材育成", "その他"],
+    placeholder: "具体的な取り組みや共有したいことがあれば記入" }
 ];
 
 // ---- 初期表示 ----
