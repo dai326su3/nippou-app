@@ -32,6 +32,13 @@
   h1{ margin:0; font-size:25px; font-weight:700; letter-spacing:-0.01em; }
   .date-line{ margin-top:4px; font-size:13px; color:#6b6459; }
 
+  .topnav{ display:flex; gap:8px; margin-top:16px; }
+  .topnav-btn{
+    flex:1; padding:10px 0; border-radius:8px; border:1px solid var(--line);
+    background:#fff; font-size:14px; font-weight:700; font-family:inherit; color:#9a9184; cursor:pointer;
+  }
+  .topnav-btn.active{ background:var(--ink); border-color:var(--ink); color:#fff; }
+
   form{ padding:22px 20px 0; }
   .field{ margin-bottom:20px; }
   .field > label{
@@ -152,6 +159,44 @@
     font-size:17px; font-weight:700; line-height:1.7; color:#3d2a15;
   }
 
+  /* --- 目標管理 --- */
+  .subnav{ display:flex; gap:8px; padding:20px 20px 0; }
+  .subnav-btn{
+    flex:1; padding:9px 0; border-radius:16px; border:1px solid var(--line);
+    background:#fbfaf7; font-size:13px; font-weight:600; font-family:inherit; color:var(--ink); cursor:pointer;
+  }
+  .subnav-btn.active{ background:var(--accent); border-color:var(--accent); color:#fff; }
+
+  .goal-panel{ padding:18px 20px 0; }
+
+  .metric-row{
+    background:#fff; border:1px solid var(--line); border-radius:10px;
+    padding:12px 14px; margin-bottom:10px;
+  }
+  .metric-label{ font-size:13px; font-weight:700; margin-bottom:8px; }
+  .metric-inputs{ display:flex; gap:8px; }
+  .metric-inputs input{
+    flex:1; border:1px solid var(--line); border-radius:6px; padding:9px 10px;
+    font-size:15px; font-family:inherit;
+  }
+  .metric-inputs input:focus{
+    outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft);
+  }
+
+  .week-range{ margin-top:8px; font-size:13px; color:var(--accent); font-weight:600; }
+
+  .month-select-row{ display:flex; gap:8px; }
+  .month-select-row select{ flex:1; }
+
+  .goal-buttons{ display:flex; gap:10px; padding:6px 0 0; }
+  .goal-save-btn{
+    flex:1; padding:13px; border:none; border-radius:8px; font-size:14.5px; font-weight:700;
+    font-family:inherit; cursor:pointer;
+  }
+  .goal-save-btn.goal-target{ background:var(--ink); color:#fff; }
+  .goal-save-btn.goal-actual{ background:var(--accent); color:#fff; }
+  .goal-save-btn:active{ opacity:0.85; }
+
   .config-note{
     margin:26px 20px 0; padding:12px 14px; background:#fff;
     border:1px dashed var(--line); border-radius:6px; font-size:12px;
@@ -165,42 +210,119 @@
     <div class="eyebrow">Production / Daily Report</div>
     <h1>生産日報</h1>
     <div class="date-line" id="todayLabel"></div>
+    <div class="topnav">
+      <button type="button" class="topnav-btn active" data-view="report">日報</button>
+      <button type="button" class="topnav-btn" data-view="goal">目標管理</button>
+    </div>
   </header>
 
-  <form id="reportForm">
-    <div class="field">
-      <label>報告日 <span class="tag">DATE</span></label>
-      <input type="date" id="reportDate" required>
+  <div id="reportView">
+    <form id="reportForm">
+      <div class="field">
+        <label>報告日 <span class="tag">DATE</span></label>
+        <input type="date" id="reportDate" required>
+      </div>
+
+      <div class="field">
+        <label>報告者 <span class="tag">NAME</span></label>
+        <select id="reporter" required>
+          <option value="">選択してください</option>
+        </select>
+      </div>
+
+      <div class="score-panel">
+        <div class="score-panel-title">本日の体感</div>
+        <div class="score-panel-sub">該当する数字をタップしてください(1=悪い / 5=良い)</div>
+        <div id="scoreRoot"></div>
+      </div>
+
+      <div id="categoriesRoot"></div>
+
+      <div class="field freeform">
+        <label>⑥その他自由記入 <span class="tag">FREE</span></label>
+        <textarea id="freeText" placeholder="上記に当てはまらない連絡事項など"></textarea>
+      </div>
+
+      <div class="submit-bar">
+        <button type="submit" class="submit" id="submitBtn">日報を送信</button>
+      </div>
+    </form>
+
+    <div class="status" id="statusBox"></div>
+
+    <div class="encourage" id="encourageBox"></div>
+  </div>
+
+  <div id="goalView" style="display:none">
+    <div class="subnav">
+      <button type="button" class="subnav-btn active" data-sub="weekly">週次目標</button>
+      <button type="button" class="subnav-btn" data-sub="monthly">月次目標</button>
     </div>
 
-    <div class="field">
-      <label>報告者 <span class="tag">NAME</span></label>
-      <select id="reporter" required>
-        <option value="">選択してください</option>
-      </select>
+    <div id="weeklyPanel" class="goal-panel">
+      <div class="field">
+        <label>報告者 <span class="tag">NAME</span></label>
+        <select id="goalReporterWeekly" required>
+          <option value="">選択してください</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>対象週(いずれかの日を選択) <span class="tag">WEEK</span></label>
+        <input type="date" id="weeklyDate">
+        <div class="week-range" id="weeklyRangeLabel"></div>
+      </div>
+
+      <div id="weeklyMetrics"></div>
+
+      <div class="field freeform">
+        <label>その他(目標)</label>
+        <textarea id="weeklyFreeGoal" placeholder="週の目標に関する補足"></textarea>
+      </div>
+      <div class="field freeform">
+        <label>その他(実績)</label>
+        <textarea id="weeklyFreeActual" placeholder="週の実績に関する補足"></textarea>
+      </div>
+
+      <div class="goal-buttons">
+        <button type="button" class="goal-save-btn goal-target" id="weeklyGoalSaveBtn">目標を保存</button>
+        <button type="button" class="goal-save-btn goal-actual" id="weeklyActualSaveBtn">実績を保存</button>
+      </div>
+      <div class="status" id="weeklyStatusBox"></div>
     </div>
 
-    <div class="score-panel">
-      <div class="score-panel-title">本日の体感</div>
-      <div class="score-panel-sub">該当する数字をタップしてください(1=悪い / 5=良い)</div>
-      <div id="scoreRoot"></div>
+    <div id="monthlyPanel" class="goal-panel" style="display:none">
+      <div class="field">
+        <label>報告者 <span class="tag">NAME</span></label>
+        <select id="goalReporterMonthly" required>
+          <option value="">選択してください</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>対象月 <span class="tag">MONTH</span></label>
+        <div class="month-select-row">
+          <select id="monthlyYear"></select>
+          <select id="monthlyMonth"></select>
+        </div>
+      </div>
+
+      <div id="monthlyMetrics"></div>
+
+      <div class="field freeform">
+        <label>その他(目標)</label>
+        <textarea id="monthlyFreeGoal" placeholder="月の目標に関する補足"></textarea>
+      </div>
+      <div class="field freeform">
+        <label>その他(実績)</label>
+        <textarea id="monthlyFreeActual" placeholder="月の実績に関する補足"></textarea>
+      </div>
+
+      <div class="goal-buttons">
+        <button type="button" class="goal-save-btn goal-target" id="monthlyGoalSaveBtn">目標を保存</button>
+        <button type="button" class="goal-save-btn goal-actual" id="monthlyActualSaveBtn">実績を保存</button>
+      </div>
+      <div class="status" id="monthlyStatusBox"></div>
     </div>
-
-    <div id="categoriesRoot"></div>
-
-    <div class="field freeform">
-      <label>⑥その他自由記入 <span class="tag">FREE</span></label>
-      <textarea id="freeText" placeholder="上記に当てはまらない連絡事項など"></textarea>
-    </div>
-
-    <div class="submit-bar">
-      <button type="submit" class="submit" id="submitBtn">日報を送信</button>
-    </div>
-  </form>
-
-  <div class="status" id="statusBox"></div>
-
-  <div class="encourage" id="encourageBox"></div>
+  </div>
 
   <div class="config-note" id="configNote"></div>
 </div>
@@ -239,6 +361,21 @@ const CATEGORIES = [
     placeholder: "具体的な取り組みや共有したいことがあれば記入" }
 ];
 
+const WEEKLY_METRICS = [
+  { key: "zangyoLoss",   label: "余剰ロス率" },
+  { key: "processLoss",  label: "工程ロス率" },
+  { key: "complaints",   label: "お申し出件数" },
+  { key: "workHoursYoy", label: "労働時間前年比" }
+];
+
+const MONTHLY_METRICS = [
+  { key: "zangyoLoss",      label: "余剰ロス率" },
+  { key: "processLoss",     label: "工程ロス率" },
+  { key: "complaints",      label: "お申し出件数" },
+  { key: "laborAccidents",  label: "労災件数" },
+  { key: "grossMargin",     label: "粗利率" }
+];
+
 // ---- 初期表示 ----
 const todayLabel = document.getElementById('todayLabel');
 const dateInput = document.getElementById('reportDate');
@@ -250,10 +387,30 @@ dateInput.value = `${yyyy}-${mm}-${dd}`;
 const weekday = ['日','月','火','水','木','金','土'][now.getDay()];
 todayLabel.textContent = `${yyyy}年${mm}月${dd}日 (${weekday})`;
 
+// ---- タブ切り替え(日報 / 目標管理) ----
+document.querySelectorAll('.topnav-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.topnav-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    const view = btn.dataset.view;
+    document.getElementById('reportView').style.display = view === 'report' ? '' : 'none';
+    document.getElementById('goalView').style.display = view === 'goal' ? '' : 'none';
+  });
+});
+document.querySelectorAll('.subnav-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.subnav-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    const sub = btn.dataset.sub;
+    document.getElementById('weeklyPanel').style.display = sub === 'weekly' ? '' : 'none';
+    document.getElementById('monthlyPanel').style.display = sub === 'monthly' ? '' : 'none';
+  });
+});
+
+// ---- 報告者リストの取得(日報・目標管理 共通) ----
 const reporterSelect = document.getElementById('reporter');
 const configNote = document.getElementById('configNote');
 
-// 設定タブ(報告者・メール送信先)をGASから取得。失敗時は前回のキャッシュにフォールバック
 async function loadReporters(){
   try {
     const res = await fetch(GAS_URL, { method: 'GET' });
@@ -262,9 +419,7 @@ async function loadReporters(){
       try { localStorage.setItem('nippou_reporters_cache', JSON.stringify(json.reporters)); } catch(e){}
       return json.reporters;
     }
-  } catch (err) {
-    // 通信エラー時はキャッシュにフォールバック
-  }
+  } catch (err) { /* 通信エラー時はキャッシュへフォールバック */ }
   try {
     const cached = localStorage.getItem('nippou_reporters_cache');
     if (cached) {
@@ -277,10 +432,17 @@ async function loadReporters(){
 
 (async ()=>{
   const reporters = await loadReporters();
-  reporters.forEach(name=>{
-    const opt = document.createElement('option');
-    opt.value = name; opt.textContent = name;
-    reporterSelect.appendChild(opt);
+  const selects = [
+    reporterSelect,
+    document.getElementById('goalReporterWeekly'),
+    document.getElementById('goalReporterMonthly')
+  ];
+  selects.forEach(sel=>{
+    reporters.forEach(name=>{
+      const opt = document.createElement('option');
+      opt.value = name; opt.textContent = name;
+      sel.appendChild(opt);
+    });
   });
   if (reporters.length === 0) {
     configNote.textContent = (configNote.textContent ? configNote.textContent + "\n" : "") +
@@ -477,7 +639,7 @@ function hideEncourage(){
   encourageBox.classList.remove('show', 'visible');
 }
 
-// ---- 送信 ----
+// ---- 日報の送信 ----
 const form = document.getElementById('reportForm');
 const statusBox = document.getElementById('statusBox');
 const submitBtn = document.getElementById('submitBtn');
@@ -559,6 +721,208 @@ form.addEventListener('submit', async (e)=>{
     submitBtn.textContent = '日報を送信';
   }
 });
+
+// ==================== 目標管理 ====================
+
+function renderMetrics(containerId, metrics, prefix){
+  const container = document.getElementById(containerId);
+  container.innerHTML = '';
+  metrics.forEach(m=>{
+    const row = document.createElement('div');
+    row.className = 'metric-row';
+    row.innerHTML = `
+      <div class="metric-label">${m.label}</div>
+      <div class="metric-inputs">
+        <input type="text" inputmode="decimal" placeholder="目標" id="${prefix}-target-${m.key}">
+        <input type="text" inputmode="decimal" placeholder="実績" id="${prefix}-actual-${m.key}">
+      </div>
+    `;
+    container.appendChild(row);
+  });
+}
+renderMetrics('weeklyMetrics', WEEKLY_METRICS, 'weekly');
+renderMetrics('monthlyMetrics', MONTHLY_METRICS, 'monthly');
+
+function fillMetricInputs(prefix, metrics, goalValues, actualValues){
+  metrics.forEach(m=>{
+    const tEl = document.getElementById(`${prefix}-target-${m.key}`);
+    const aEl = document.getElementById(`${prefix}-actual-${m.key}`);
+    tEl.value = (goalValues && goalValues[m.key] != null) ? goalValues[m.key] : '';
+    aEl.value = (actualValues && actualValues[m.key] != null) ? actualValues[m.key] : '';
+  });
+}
+
+function getWeekInfo(dateStr){
+  const d = new Date(dateStr + 'T00:00:00');
+  const day = d.getDay();
+  const diffToMonday = (day === 0) ? -6 : (1 - day);
+  const monday = new Date(d);
+  monday.setDate(d.getDate() + diffToMonday);
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  const fmtKey = (dt)=> `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
+  const fmtLabel = (dt)=> `${dt.getMonth()+1}/${dt.getDate()}`;
+  return {
+    key: fmtKey(monday),
+    label: `${fmtLabel(monday)}(月)〜${fmtLabel(sunday)}(日)`
+  };
+}
+
+// 週次:初期日付
+const weeklyDateInput = document.getElementById('weeklyDate');
+weeklyDateInput.value = `${yyyy}-${mm}-${dd}`;
+
+// 月次:年・月プルダウン
+const monthlyYearSelect = document.getElementById('monthlyYear');
+const monthlyMonthSelect = document.getElementById('monthlyMonth');
+for (let y = yyyy - 1; y <= yyyy + 1; y++){
+  const opt = document.createElement('option');
+  opt.value = y; opt.textContent = y + '年';
+  if (y === yyyy) opt.selected = true;
+  monthlyYearSelect.appendChild(opt);
+}
+for (let mo = 1; mo <= 12; mo++){
+  const opt = document.createElement('option');
+  const v = String(mo).padStart(2,'0');
+  opt.value = v; opt.textContent = mo + '月';
+  if (mo === now.getMonth() + 1) opt.selected = true;
+  monthlyMonthSelect.appendChild(opt);
+}
+
+async function fetchGoalRow(period, reporter, periodKey){
+  if (!reporter || !periodKey) return null;
+  try {
+    const url = `${GAS_URL}?action=getGoal&period=${period}&reporter=${encodeURIComponent(reporter)}&periodKey=${encodeURIComponent(periodKey)}`;
+    const res = await fetch(url, { method: 'GET' });
+    return await res.json();
+  } catch (err) {
+    return null;
+  }
+}
+
+async function reloadWeekly(){
+  const dateVal = weeklyDateInput.value;
+  if (!dateVal) return;
+  const info = getWeekInfo(dateVal);
+  document.getElementById('weeklyRangeLabel').textContent = info.label;
+
+  const reporter = document.getElementById('goalReporterWeekly').value;
+  if (!reporter) {
+    fillMetricInputs('weekly', WEEKLY_METRICS, null, null);
+    document.getElementById('weeklyFreeGoal').value = '';
+    document.getElementById('weeklyFreeActual').value = '';
+    return;
+  }
+  const data = await fetchGoalRow('weekly', reporter, info.key);
+  if (data && data.found) {
+    fillMetricInputs('weekly', WEEKLY_METRICS, data.goal, data.actual);
+    document.getElementById('weeklyFreeGoal').value = data.freeGoal || '';
+    document.getElementById('weeklyFreeActual').value = data.freeActual || '';
+  } else {
+    fillMetricInputs('weekly', WEEKLY_METRICS, null, null);
+    document.getElementById('weeklyFreeGoal').value = '';
+    document.getElementById('weeklyFreeActual').value = '';
+  }
+}
+
+async function reloadMonthly(){
+  const reporter = document.getElementById('goalReporterMonthly').value;
+  const periodKey = `${monthlyYearSelect.value}-${monthlyMonthSelect.value}`;
+  if (!reporter) {
+    fillMetricInputs('monthly', MONTHLY_METRICS, null, null);
+    document.getElementById('monthlyFreeGoal').value = '';
+    document.getElementById('monthlyFreeActual').value = '';
+    return;
+  }
+  const data = await fetchGoalRow('monthly', reporter, periodKey);
+  if (data && data.found) {
+    fillMetricInputs('monthly', MONTHLY_METRICS, data.goal, data.actual);
+    document.getElementById('monthlyFreeGoal').value = data.freeGoal || '';
+    document.getElementById('monthlyFreeActual').value = data.freeActual || '';
+  } else {
+    fillMetricInputs('monthly', MONTHLY_METRICS, null, null);
+    document.getElementById('monthlyFreeGoal').value = '';
+    document.getElementById('monthlyFreeActual').value = '';
+  }
+}
+
+document.getElementById('goalReporterWeekly').addEventListener('change', reloadWeekly);
+weeklyDateInput.addEventListener('change', reloadWeekly);
+document.getElementById('goalReporterMonthly').addEventListener('change', reloadMonthly);
+monthlyYearSelect.addEventListener('change', reloadMonthly);
+monthlyMonthSelect.addEventListener('change', reloadMonthly);
+
+reloadWeekly();
+reloadMonthly();
+
+function collectMetricValues(prefix, metrics, type){
+  const values = {};
+  metrics.forEach(m=>{
+    const el = document.getElementById(`${prefix}-${type}-${m.key}`);
+    values[m.key] = el.value.trim();
+  });
+  return values;
+}
+
+async function saveGoal(period, mode){
+  const prefix = period;
+  const reporterEl = document.getElementById(period === 'weekly' ? 'goalReporterWeekly' : 'goalReporterMonthly');
+  const reporter = reporterEl.value;
+  const statusBoxEl = document.getElementById(period === 'weekly' ? 'weeklyStatusBox' : 'monthlyStatusBox');
+
+  if (!GAS_URL || GAS_URL === "PASTE_YOUR_GAS_WEB_APP_URL_HERE") {
+    statusBoxEl.className = 'status show err';
+    statusBoxEl.textContent = '送信先が未設定です。管理者にGAS URLの設定を依頼してください。';
+    return;
+  }
+  if (!reporter) {
+    statusBoxEl.className = 'status show err';
+    statusBoxEl.textContent = '報告者を選択してください。';
+    return;
+  }
+
+  let periodKey, metrics;
+  if (period === 'weekly') {
+    const dateVal = weeklyDateInput.value;
+    if (!dateVal) {
+      statusBoxEl.className = 'status show err';
+      statusBoxEl.textContent = '対象週の日付を選択してください。';
+      return;
+    }
+    periodKey = getWeekInfo(dateVal).key;
+    metrics = WEEKLY_METRICS;
+  } else {
+    periodKey = `${monthlyYearSelect.value}-${monthlyMonthSelect.value}`;
+    metrics = MONTHLY_METRICS;
+  }
+
+  const values = collectMetricValues(prefix, metrics, mode === 'goal' ? 'target' : 'actual');
+  const freeText = document.getElementById(prefix + (mode === 'goal' ? 'FreeGoal' : 'FreeActual')).value;
+
+  const payload = { formType: 'goal', period, mode, reporter, periodKey, values, freeText };
+
+  statusBoxEl.className = 'status show pending';
+  statusBoxEl.textContent = '送信しています。しばらくお待ちください。';
+
+  try {
+    await fetch(GAS_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify(payload)
+    });
+    statusBoxEl.className = 'status show ok';
+    statusBoxEl.textContent = (mode === 'goal') ? '目標を保存しました。' : '実績を保存しました。';
+  } catch (err) {
+    statusBoxEl.className = 'status show err';
+    statusBoxEl.textContent = '保存に失敗しました。通信環境をご確認のうえ再度お試しください。';
+  }
+}
+
+document.getElementById('weeklyGoalSaveBtn').addEventListener('click', ()=> saveGoal('weekly', 'goal'));
+document.getElementById('weeklyActualSaveBtn').addEventListener('click', ()=> saveGoal('weekly', 'actual'));
+document.getElementById('monthlyGoalSaveBtn').addEventListener('click', ()=> saveGoal('monthly', 'goal'));
+document.getElementById('monthlyActualSaveBtn').addEventListener('click', ()=> saveGoal('monthly', 'actual'));
 </script>
 </body>
 </html>
