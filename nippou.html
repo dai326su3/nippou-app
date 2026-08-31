@@ -211,10 +211,8 @@
 // デプロイ後のGAS Web App URL
 const GAS_URL = "https://script.google.com/macros/s/AKfycbz3ppcUyUjKzM5snfyIa13_0TGtsYt3hiWuqnHo5KPkAGNFR9WNMlytmRAcIr7andYMxQ/exec";
 
-// 報告者プルダウンの選択肢(実際のメンバー名に書き換えてください)
-const REPORTERS = ["角次長", "上間課長", "上江洲課長", "玉那覇課長"];
-
 /* ============================================================================ */
+// 報告者リストは、スプレッドシートの「設定」タブから自動取得します(下部の loadReporters を参照)
 
 const SCORES = [
   { key: "equipment",   label: "設備稼働" },
@@ -253,18 +251,47 @@ const weekday = ['日','月','火','水','木','金','土'][now.getDay()];
 todayLabel.textContent = `${yyyy}年${mm}月${dd}日 (${weekday})`;
 
 const reporterSelect = document.getElementById('reporter');
-REPORTERS.forEach(name=>{
-  const opt = document.createElement('option');
-  opt.value = name; opt.textContent = name;
-  reporterSelect.appendChild(opt);
-});
-
 const configNote = document.getElementById('configNote');
+
+// 設定タブ(報告者・メール送信先)をGASから取得。失敗時は前回のキャッシュにフォールバック
+async function loadReporters(){
+  try {
+    const res = await fetch(GAS_URL, { method: 'GET' });
+    const json = await res.json();
+    if (json.reporters && json.reporters.length) {
+      try { localStorage.setItem('nippou_reporters_cache', JSON.stringify(json.reporters)); } catch(e){}
+      return json.reporters;
+    }
+  } catch (err) {
+    // 通信エラー時はキャッシュにフォールバック
+  }
+  try {
+    const cached = localStorage.getItem('nippou_reporters_cache');
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (parsed && parsed.length) return parsed;
+    }
+  } catch(e){}
+  return [];
+}
+
+(async ()=>{
+  const reporters = await loadReporters();
+  reporters.forEach(name=>{
+    const opt = document.createElement('option');
+    opt.value = name; opt.textContent = name;
+    reporterSelect.appendChild(opt);
+  });
+  if (reporters.length === 0) {
+    configNote.textContent = (configNote.textContent ? configNote.textContent + "\n" : "") +
+      "⚠ 報告者リストを取得できませんでした。スプレッドシートの「設定」タブと通信環境を確認してください。";
+  }
+})();
+
 let notes = [];
 if (!GAS_URL || GAS_URL === "PASTE_YOUR_GAS_WEB_APP_URL_HERE") {
   notes.push("⚠ GAS_URL が未設定です。設置手順に従って書き換えてください。");
 }
-notes.push("報告者リストは REPORTERS 配列を編集して実際のメンバー名にしてください。");
 configNote.textContent = notes.join("\n");
 
 // ---- 体感スコア ----
