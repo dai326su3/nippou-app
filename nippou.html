@@ -119,8 +119,15 @@
     border-radius:6px; background:#fbfaf7;
   }
   .photo-preview{ display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
-  .photo-preview img{
+  .photo-thumb{ position:relative; width:56px; height:56px; }
+  .photo-thumb img{
     width:56px; height:56px; object-fit:cover; border-radius:6px; border:1px solid var(--line);
+    display:block;
+  }
+  .photo-remove{
+    position:absolute; top:-6px; right:-6px; width:20px; height:20px; border-radius:50%;
+    background:#a33d2d; color:#fff; border:2px solid var(--paper); font-size:12px; font-weight:700;
+    line-height:1; display:flex; align-items:center; justify-content:center; cursor:pointer; padding:0;
   }
 
   .field.freeform textarea{ min-height:80px; }
@@ -448,6 +455,7 @@ async function loadReporters(){
     configNote.textContent = (configNote.textContent ? configNote.textContent + "\n" : "") +
       "⚠ 報告者リストを取得できませんでした。スプレッドシートの「設定」タブと通信環境を確認してください。";
   }
+  restoreDraft();
 })();
 
 let notes = [];
@@ -480,6 +488,7 @@ SCORES.forEach(s=>{
       row.querySelectorAll('.score-scale button').forEach(b=>b.classList.remove('active'));
       btn.classList.add('active');
       scoreState[s.key] = btn.dataset.v;
+      saveDraft();
     });
   });
 });
@@ -528,21 +537,47 @@ CATEGORIES.forEach(cat=>{
         state[cat.key].tags = state[cat.key].tags.filter(x => x !== t);
       }
       refreshHighlight();
+      saveDraft();
     });
   });
 
-  document.getElementById('detail-' + cat.key).addEventListener('input', refreshHighlight);
+  document.getElementById('detail-' + cat.key).addEventListener('input', ()=>{
+    refreshHighlight();
+    saveDraft();
+  });
 
   const fileInput = card.querySelector(`#photo-${cat.key}`);
   const preview = card.querySelector(`#preview-${cat.key}`);
-  fileInput.addEventListener('change', ()=>{
-    state[cat.key].files = Array.from(fileInput.files || []);
+
+  function renderPreview(){
     preview.innerHTML = '';
-    state[cat.key].files.forEach(f=>{
+    state[cat.key].files.forEach((f, idx)=>{
+      const thumb = document.createElement('div');
+      thumb.className = 'photo-thumb';
+
       const img = document.createElement('img');
       img.src = URL.createObjectURL(f);
-      preview.appendChild(img);
+      thumb.appendChild(img);
+
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.className = 'photo-remove';
+      removeBtn.textContent = '×';
+      removeBtn.setAttribute('aria-label', '写真を削除');
+      removeBtn.addEventListener('click', ()=>{
+        state[cat.key].files.splice(idx, 1);
+        renderPreview();
+        refreshHighlight();
+      });
+      thumb.appendChild(removeBtn);
+
+      preview.appendChild(thumb);
     });
+  }
+
+  fileInput.addEventListener('change', ()=>{
+    state[cat.key].files = Array.from(fileInput.files || []);
+    renderPreview();
     refreshHighlight();
   });
 });
@@ -639,6 +674,88 @@ function hideEncourage(){
   encourageBox.classList.remove('show', 'visible');
 }
 
+// ---- 下書きの自動保存・復元(ホーム画面アプリを閉じても入力途中を保持) ----
+const REPORT_DRAFT_KEY = 'nippou_report_draft';
+
+function saveDraft(){
+  try {
+    const draft = {
+      date: dateInput.value,
+      reporter: reporterSelect.value,
+      scores: scoreState,
+      freeText: document.getElementById('freeText').value,
+      categories: {}
+    };
+    CATEGORIES.forEach(cat=>{
+      draft.categories[cat.key] = {
+        tags: state[cat.key].tags,
+        detail: document.getElementById('detail-' + cat.key).value
+      };
+    });
+    localStorage.setItem(REPORT_DRAFT_KEY, JSON.stringify(draft));
+  } catch(e) { /* 保存できなくても致命的ではないため無視 */ }
+}
+
+function clearDraft(){
+  try { localStorage.removeItem(REPORT_DRAFT_KEY); } catch(e){}
+}
+
+function applyDraft(draft){
+  if (!draft) return;
+  if (draft.date) dateInput.value = draft.date;
+  if (draft.reporter) reporterSelect.value = draft.reporter;
+
+  if (draft.scores) {
+    SCORES.forEach(s=>{
+      const v = draft.scores[s.key];
+      if (!v) return;
+      scoreState[s.key] = v;
+      const btn = document.querySelector(`.score-scale[data-key="${s.key}"] button[data-v="${v}"]`);
+      if (btn) {
+        document.querySelectorAll(`.score-scale[data-key="${s.key}"] button`).forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
+      }
+    });
+  }
+
+  if (draft.categories) {
+    CATEGORIES.forEach(cat=>{
+      const c = draft.categories[cat.key];
+      if (!c) return;
+      state[cat.key].tags = c.tags || [];
+      const card = document.getElementById('cat-' + cat.key);
+      card.querySelectorAll('.chip').forEach(chip=>{
+        chip.classList.toggle('active', state[cat.key].tags.includes(chip.dataset.tag));
+      });
+      const detailEl = document.getElementById('detail-' + cat.key);
+      if (detailEl) detailEl.value = c.detail || '';
+      const hasTags = state[cat.key].tags.length > 0;
+      const hasText = (c.detail || '').trim() !== '';
+      card.classList.toggle('has-content', hasTags || hasText);
+    });
+  }
+
+  if (draft.freeText != null) {
+    document.getElementById('freeText').value = draft.freeText;
+  }
+}
+
+function restoreDraft(){
+  let draft = null;
+  try {
+    const raw = localStorage.getItem(REPORT_DRAFT_KEY);
+    if (raw) draft = JSON.parse(raw);
+  } catch(e){}
+  if (draft) {
+    applyDraft(draft);
+    showStatus('pending', '前回の入力途中の内容を復元しました(写真は再度添付してください)。');
+  }
+}
+
+dateInput.addEventListener('change', saveDraft);
+reporterSelect.addEventListener('change', saveDraft);
+document.getElementById('freeText').addEventListener('input', saveDraft);
+
 // ---- 日報の送信 ----
 const form = document.getElementById('reportForm');
 const statusBox = document.getElementById('statusBox');
@@ -663,6 +780,7 @@ function resetForm(){
     card.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
     document.getElementById('preview-' + cat.key).innerHTML = '';
   });
+  clearDraft();
 }
 
 form.addEventListener('submit', async (e)=>{
